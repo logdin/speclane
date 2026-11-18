@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Single-spec mode: the skill always runs its check script (a live run decided the refusal by itself instead).
+- Docs: finalize's report writes are also hit by the `.claude/` sensitive-path prompt; live-verified coverage and the non-transitive hold quirk listed under Known limits.
+
 ## 0.1.0 (2026-11-17)
 
 First release: an in-house planner/worker spec system (v5), packaged as a project-neutral plugin.

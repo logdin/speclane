@@ -376,7 +376,7 @@ git diff --cached --quiet -- "{workDir}/items/{item}" || git commit --only -m "c
 
 Omit empty rows and sections.
 
-**Single-spec mode** (`/speclane:execute {item} SPEC-NNN`): run §1–§3 as usual (the state script with `--write`). Then build a one-spec lane with this check. It refuses unless every `depends_on` spec **and every earlier lane-mate** is `done`:
+**Single-spec mode** (`/speclane:execute {item} SPEC-NNN`): run §1–§3 as usual (the state script with `--write`; stop on exit `1` or `2` as usual). Then **always** run this check, even if you expect it to refuse: it is the only thing that decides whether the spec may run, and it builds the one-spec lane. It refuses unless every `depends_on` spec **and every earlier lane-mate** is `done`:
 
 ```bash
 python3 -I - "{workDir}/items/{item}" SPEC-NNN "${CLAUDE_SKILL_DIR}" <<'PYEOF'

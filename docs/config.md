@@ -24,7 +24,7 @@ The scripts look for the file at `git rev-parse --show-toplevel`. Run the skills
 
 Holds `plans/`, `items/<slug>/` and `reviews/`. Every item path in the skills is `{workDir}/items/{item}`, and the workers' "never edit the item folder" rule uses it.
 
-Claude Code treats files under `.claude/` as sensitive: a `Write`/`Edit` tool call there asks for approval every time, and a headless (`claude -p`) run refuses it. `/speclane:execute` and `/speclane:finalize` write state through their Python scripts and git (Bash), so they aren't affected. `/speclane:init`, `/speclane:plan` and `/speclane:review-plan` write their files with the `Write` tool, so expect approval prompts with the default `workDir`. To avoid them, set `workDir` to a folder outside `.claude/`, e.g. `docs/work`.
+Claude Code treats files under `.claude/` as sensitive: a `Write`/`Edit` tool call there asks for approval every time, and a headless (`claude -p`) run refuses it. `/speclane:execute` writes all its state through its Python scripts and git (Bash), so it isn't affected. `/speclane:init`, `/speclane:plan`, `/speclane:review-plan` and `/speclane:finalize` (its `reports/`) write files with the `Write` tool, so expect approval prompts with the default `workDir`. To avoid them, set `workDir` to a folder outside `.claude/`, e.g. `docs/work`.
 
 ### `contextFiles` (default `[]`)
 
