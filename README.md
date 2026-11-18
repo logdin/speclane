@@ -107,7 +107,6 @@ Live runs have found bugs the stubs missed, so also smoke-test a change in a scr
 - **Project MCP tools aren't pre-approved.** A plugin skill can't list them in `allowed-tools`; allow them in your project's `.claude/settings.json` if you configure `mcpTools`.
 - **Workers read the commit contract from the plugin folder** (an absolute path passed in the workflow input). If a sandbox blocks reads outside the project, that read fails; the worker prompt's summary of the contract still applies.
 - **Live-verified** (headless runs in scratch projects): init; execute with a converge pass, a fix round, the 3-round cap → blocked, lane-mates and dependent lanes skipped, unblock and resume, single-spec mode (run and refusal) and a `sonnet` lane; finalize with reviewers, the gate and the high-risk verify pass. Every converge, hand-off check and verify ran on `claude-opus-4-6`. **Covered only by the offline tests**: `untestable` results and a worker that dies mid-lane.
-- **Holding isn't transitive** (behaviour kept from v5). A spec is held only when a *direct* dependency or earlier lane-mate is `blocked`. A spec whose dependency is merely `skipped` gets flipped `skipped → approved` by each reconcile and back to `skipped` by the results step. The end state is right, but each run reports that change.
 
 ## License
 

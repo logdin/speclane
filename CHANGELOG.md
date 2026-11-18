@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Holding is now transitive: a spec behind a held (not just blocked) dependency or lane-mate is held too. Before, such a spec flipped `skipped → approved` on every reconcile and back again after the run.
 - Single-spec mode: the skill always runs its check script (a live run decided the refusal by itself instead).
 - Docs: finalize's report writes are also hit by the `.claude/` sensitive-path prompt; live-verified coverage and the non-transitive hold quirk listed under Known limits.
 

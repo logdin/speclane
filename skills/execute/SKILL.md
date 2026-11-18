@@ -43,7 +43,7 @@ Every run resumes: there is no separate resume flag. Re-running after a crash, a
 | `blocked` | 3 failed converge rounds, or the worker failed before committing | This skill |
 | `skipped` | Didn't run because a dependency or earlier lane-mate is blocked | This skill |
 
-A spec is **held** while any spec in its `depends_on`, or any earlier spec in its lane, is `blocked`. Held specs are never sent to the workflow, not even `committed` ones, so nothing builds past a blocked spec.
+A spec is **held** while any spec in its `depends_on`, or any earlier spec in its lane, is `blocked` or itself held (so holding passes down a chain of dependencies). Held specs are never sent to the workflow, not even `committed` ones, so nothing builds past a blocked spec.
 
 ## §1 Pre-flight, §2 Reconcile, §3 Guard, §4 Build Input: the state script
 
@@ -142,9 +142,13 @@ for sid, s in specs.items():
         out['changes'].append(f'{sid}: ' + (f'commits +{len(add)}' if add else 'has commits') + (f', {st} -> {nst}' if nst != st else ''))
     if sid in new: s['status'], s['commits'] = new[sid]['status'], new[sid]['commits']
 blocked = {sid for sid, s in specs.items() if s['status'] == 'blocked'}
-def held(sid):
-    s = specs[sid]; mates = lanes[s['lane']]['specs']
-    return any(d in blocked for d in s['deps']) or any(m in blocked for m in mates[:mates.index(sid)])
+_held = {}
+def held(sid, seen=()):  # transitive: behind a blocked spec, or behind a spec that is itself held
+    if sid not in _held:
+        s = specs[sid]; mates = lanes[s['lane']]['specs']
+        before = [d for d in s['deps'] + mates[:mates.index(sid)] if d not in seen]
+        _held[sid] = any(d in blocked or held(d, seen + (sid,)) for d in before)
+    return _held[sid]
 for sid, s in specs.items():
     if s['status'] == 'skipped' and not held(sid):
         s['status'] = 'approved'; new.setdefault(sid, {'commits': s['commits']})['status'] = 'approved'

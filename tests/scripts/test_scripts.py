@@ -321,6 +321,21 @@ class StateScript(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn('no specs/ folder', out['errors'][0])
 
+    def test_hold_is_transitive(self):
+        # SPEC-001 blocked; SPEC-002 (lane A, after it) skipped; SPEC-003 (lane B) depends on SPEC-002 and was
+        # skipped with its lane; SPEC-004 (lane C) depends on SPEC-003 and is still approved.
+        specs = [S('SPEC-001', 'A', status='blocked', reason='"x"'), S('SPEC-002', 'A', status='skipped'),
+                 S('SPEC-003', 'B', deps=['SPEC-002'], status='skipped'), S('SPEC-004', 'C', deps=['SPEC-003']), S('SPEC-005', 'D')]
+        lanes = [('A', ['SPEC-001', 'SPEC-002'], 'default', []), ('B', ['SPEC-003'], 'default', ['A']),
+                 ('C', ['SPEC-004'], 'default', ['B']), ('D', ['SPEC-005'], 'default', [])]
+        r = Repo(self, specs, lanes)
+        code, out = r.run(STATE, r.item, '/s', '--write')
+        self.assertEqual(code, 0)
+        self.assertEqual(out['changes'], [], 'a spec held through a skipped dependency must not flip to approved')
+        self.assertEqual(sorted(out['held']), ['SPEC-002', 'SPEC-003', 'SPEC-004'])
+        self.assertEqual([l['lane'] for l in out['input']['lanes']], ['D'])
+        self.assertEqual(r.fm('SPEC-003', 'status'), 'skipped')
+
     def test_done_lane_dropped_from_dependsOn_and_wouldSkip(self):
         specs = [S('SPEC-001', 'A', status='done', converge='pass'), S('SPEC-002', 'B', deps=['SPEC-001']),
                  S('SPEC-003', 'C', status='blocked'), S('SPEC-004', 'D', deps=['SPEC-003'])]

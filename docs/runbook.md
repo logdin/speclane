@@ -26,7 +26,7 @@ For plan-driven, multi-spec work. The main session plans; workers implement one 
 
 - **Authority**: the `Spec:` commit trailers in git. Spec frontmatter (`status`, `commits`, `converge`) is a cache that `/speclane:execute` reconciles forward and is its only writer. Workers write code and commits only.
 - **Statuses**: `draft` → `approved` (you) → `committed` (a trailer commit exists) → `done` (converge pass, or `manual`). `blocked` (3 failed converge rounds, or the worker failed before committing) and `skipped` (behind a blocked spec) are set by the skill.
-- **Held**: a spec is held while any `depends_on` spec or earlier lane-mate is `blocked`. Held specs never reach the workflow, not even `committed` ones.
+- **Held**: a spec is held while any `depends_on` spec or earlier lane-mate is `blocked`, or is itself held (holding is transitive). Held specs never reach the workflow, not even `committed` ones.
 - **Reconcile is forward-only**: it fills `commits` from exact `<slug>/SPEC-NNN` trailer values, moves `approved` → `committed`, returns `skipped` → `approved` once no longer held, and never touches `done`, `blocked` or `committed`.
 - **Resume** is just re-running `/speclane:execute <slug>` after a crash, block or unblock.
 - **Untestable is not a pass.** A converge of `untestable (n/m)` keeps the spec `committed`, runs no fix round, and skips lanes that depend on it. Either check the criterion yourself and set `status: done`, `converge: manual`, or rewrite it so it can be checked and re-run.
