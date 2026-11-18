@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.2 (2026-11-17)
 
 Fixes from an independent review:
 - Frontmatter `# comments` (as in the spec template) no longer break pre-flight (`rounds` crashed) or turn into extra reviewer groups in finalize. Quoted values keep their `#`.
