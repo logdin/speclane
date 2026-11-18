@@ -1,0 +1,73 @@
+{
+  "$schema": "../schema/speclane.schema.json",
+  "workDir": "docs/work",
+  "contextFiles": [
+    "AGENTS.md",
+    "docs/conventions.md"
+  ],
+  "commands": {
+    "test": "pnpm exec vitest run {files}",
+    "analyze": "pnpm typecheck && pnpm exec eslint {files}",
+    "fix": "pnpm exec eslint --fix {files}",
+    "format": "pnpm exec prettier --write {files}",
+    "codegen": {
+      "run": "pnpm --filter @acme/api generate",
+      "when": "a spec changes packages/api/schema.graphql"
+    },
+    "gate": [
+      "pnpm check"
+    ]
+  },
+  "derivedFiles": [
+    "packages/api/src/generated/**"
+  ],
+  "reviewers": {
+    "default": "code-reviewer",
+    "routes": [
+      {
+        "paths": [
+          "apps/server/",
+          "packages/api/"
+        ],
+        "agent": "backend-reviewer"
+      },
+      {
+        "paths": [
+          "apps/web/"
+        ],
+        "agent": "frontend-reviewer"
+      },
+      {
+        "paths": [
+          "docs/",
+          "AGENTS.md",
+          ".claude/"
+        ],
+        "agent": "docs-reviewer"
+      }
+    ]
+  },
+  "highRisk": [
+    "apps/server/migrations/",
+    "apps/server/src/auth/",
+    "packages/api/schema.graphql"
+  ],
+  "planReviewers": [
+    {
+      "agent": "backend-reviewer",
+      "always": true,
+      "brief": "Review the plan for API compatibility, forward-only migrations, auth on every new route, and background-job idempotency."
+    },
+    {
+      "agent": "frontend-reviewer",
+      "keywords": [
+        "page",
+        "component",
+        "UI",
+        "form",
+        "copy"
+      ],
+      "brief": "Review the plan against the design tokens and component library, loading/error states, and accessibility."
+    }
+  ]
+}

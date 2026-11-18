@@ -1,0 +1,97 @@
+{
+  "$schema": "../schema/speclane.schema.json",
+  "workDir": ".claude/work",
+  "contextFiles": [
+    "docs/architecture.md",
+    "docs/style-guide.md"
+  ],
+  "commands": {
+    "test": "fvm flutter test --no-pub {files}",
+    "analyze": "fvm dart analyze {files}",
+    "fix": "fvm dart fix --apply {files}",
+    "format": "fvm dart format {files}",
+    "codegen": {
+      "run": "fvm dart run build_runner build --delete-conflicting-outputs",
+      "when": "a spec touches @freezed or @JsonSerializable models"
+    },
+    "gate": [
+      "fvm flutter analyze",
+      "fvm flutter test --no-pub"
+    ]
+  },
+  "mcpTools": [
+    "mcp__dart__dart_fix",
+    "mcp__dart__dart_format",
+    "mcp__dart__analyze_files",
+    "mcp__dart__run_tests"
+  ],
+  "derivedFiles": [
+    "**/*.g.dart",
+    "**/*.freezed.dart",
+    "barrel exports (Dart files that only export other files)"
+  ],
+  "reviewers": {
+    "default": "code-reviewer",
+    "routes": [
+      {
+        "paths": [
+          "lib/core/billing/",
+          "lib/**/payments/**"
+        ],
+        "agent": "payments-reviewer"
+      },
+      {
+        "paths": [
+          "lib/**/domain/**",
+          "lib/**/providers/**"
+        ],
+        "agent": "architecture-reviewer"
+      },
+      {
+        "paths": [
+          "lib/**/presentation/**",
+          "lib/**/widgets/**"
+        ],
+        "agent": "ui-reviewer"
+      }
+    ],
+    "aliases": {
+      "ux-reviewer": "ui-reviewer",
+      "quality-reviewer": "code-reviewer"
+    }
+  },
+  "highRisk": [
+    "lib/core/billing/",
+    "lib/features/*/domain/**",
+    "lib/core/storage/migrations/"
+  ],
+  "planReviewers": [
+    {
+      "agent": "architecture-reviewer",
+      "always": true,
+      "brief": "Review for:\n1. Data flow: unidirectional? circular dependencies?\n2. Layer separation: domain/data/presentation respected?\n3. Persistence: right storage, lifecycle and migrations clear?\n4. Integration: how it connects with existing features?"
+    },
+    {
+      "agent": "ui-reviewer",
+      "keywords": [
+        "screen",
+        "sheet",
+        "flow",
+        "onboarding",
+        "accessibility"
+      ],
+      "brief": "Review for:\n1. User flow and friction\n2. Platform conventions (iOS / Android)\n3. Accessibility: screen readers, dynamic type, touch targets\n4. Edge cases: dismiss, interruption, repeat visits"
+    },
+    {
+      "agent": "payments-reviewer",
+      "keywords": [
+        "payment",
+        "subscription",
+        "billing",
+        "price",
+        "refund"
+      ],
+      "brief": "Review for:\n1. Money handling: amounts, currency, rounding\n2. Entitlement checks on every path\n3. Failure and retry behaviour\n4. What the user is told before they pay"
+    }
+  ]
+}

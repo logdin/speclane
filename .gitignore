@@ -1,0 +1,16 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Tooling caches
+node_modules/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local Claude Code state (a plugin repo ships no project settings)
+.claude/settings.local.json
+.claude/worktrees/

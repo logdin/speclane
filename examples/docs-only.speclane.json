@@ -1,0 +1,27 @@
+{
+  "$schema": "../schema/speclane.schema.json",
+  "workDir": "work",
+  "contextFiles": [
+    "README.md",
+    "docs/style.md"
+  ],
+  "commands": {
+    "test": null,
+    "analyze": "npx --yes markdownlint-cli2 {files}",
+    "fix": null,
+    "format": null,
+    "codegen": null
+  },
+  "derivedFiles": [],
+  "reviewers": {
+    "default": "general-purpose"
+  },
+  "highRisk": [],
+  "planReviewers": [
+    {
+      "agent": "general-purpose",
+      "always": true,
+      "brief": "Review the plan against README.md and docs/style.md. Flag open decisions it assumes, documents that skip their folder's template, and any real customer data."
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "speclane",
+  "version": "0.1.0",
+  "description": "Planner/worker spec workflow: thin reviewed specs, serial lanes of one commit per spec with Spec: trailers, and an independent cross-model converge grader.",
+  "keywords": [
+    "specs",
+    "workflow",
+    "planning",
+    "review",
+    "lanes"
+  ],
+  "license": "MIT",
+  "repository": "https://github.com/logdin/speclane",
+  "homepage": "https://github.com/logdin/speclane"
+}
