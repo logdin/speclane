@@ -9,7 +9,7 @@
       "name": "speclane",
       "source": "./",
       "description": "Planner/worker spec workflow with serial lanes and an independent converge grader.",
-      "version": "0.1.2"
+      "version": "0.1.3"
     }
   ]
 }

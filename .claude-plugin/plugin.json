@@ -1,6 +1,6 @@
 {
   "name": "speclane",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Planner/worker spec workflow: thin reviewed specs, serial lanes of one commit per spec with Spec: trailers, and an independent cross-model converge grader.",
   "keywords": [
     "specs",

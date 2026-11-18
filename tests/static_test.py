@@ -84,7 +84,7 @@ class Static(unittest.TestCase):
     def test_json_files_parse(self):
         for p in ('.claude-plugin/plugin.json', '.claude-plugin/marketplace.json', 'schema/speclane.schema.json'):
             json.load(open(os.path.join(ROOT, p)))
-        self.assertEqual(json.load(open(os.path.join(ROOT, '.claude-plugin/plugin.json')))['version'], '0.1.2')
+        self.assertEqual(json.load(open(os.path.join(ROOT, '.claude-plugin/plugin.json')))['version'], '0.1.3')
 
 
 if __name__ == '__main__':
