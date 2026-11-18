@@ -41,6 +41,7 @@
 //     derivedFiles: string[],                  // generated files a commit may include
 //     contextFiles: string[],                  // read first
 //     mcpTools: string[],                      // preferred MCP tools for fix/format/analyze/test
+//     graderModel?: string,                    // overrides converge's frontmatter pin (claude-opus-4-6) when set
 //   },
 //   lanes: Array<{                             // any order; the script orders them
 //     lane: string,                            // 'A'
@@ -81,7 +82,8 @@
 // Model routing: workers and fix workers are general-purpose at effort
 // 'medium'; a lane marked `sonnet` passes model 'sonnet' (stated reason: every
 // spec in it is mechanical), otherwise the session's model is inherited.
-// Converge is agentType 'speclane:converge' at effort 'high' with NO model
+// Converge is agentType 'speclane:converge' at effort 'high'. With no `graderModel`
+// in settings it passes NO model
 // argument: its frontmatter pins claude-opus-4-6 (generator/verifier split).
 // If a run's journal ever shows converge on another model, pass
 // model: 'claude-opus-4-6' in that call and record the reason here.
@@ -327,6 +329,7 @@ async function convergeSpecs(l, ids, r, rounds) {
       phase: 'Converge',
       agentType: 'speclane:converge',
       effort: 'high',
+      ...(S.graderModel ? { model: S.graderModel } : {}),
       schema: CONVERGE,
     })
     if (!g) {

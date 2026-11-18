@@ -19,7 +19,8 @@ allowed-tools:
 
 Execute: **$ARGUMENTS**
 
-> **Project config**: first `Read` `${CLAUDE_PROJECT_DIR}/.claude/speclane.json` (schema: `${CLAUDE_PLUGIN_ROOT}/schema/speclane.schema.json`, docs: `${CLAUDE_PLUGIN_ROOT}/docs/config.md`). Take `workDir` from it (default `.claude/work`); below, `{workDir}` means that value. If the file is missing, every default applies: say so once and continue. The state script reads the same file itself and passes `commands`, `derivedFiles`, `contextFiles` and `mcpTools` to the workflow, so never copy them by hand.
+> **Project config**: first `Read` `${CLAUDE_PROJECT_DIR}/.claude/speclane.json` (schema: `${CLAUDE_PLUGIN_ROOT}/schema/speclane.schema.json`, docs: `${CLAUDE_PLUGIN_ROOT}/docs/config.md`). Take `workDir` from it (default `.claude/work`); below, `{workDir}` means that value. If the file is missing, every default applies: say so once and continue. The state script reads the same file itself and passes `commands`, `derivedFiles`, `contextFiles`, `mcpTools` and `graderModel` to the workflow, so never copy them by hand.
+> **Grader model**: converge runs on `graderModel` (default: the agent's pinned `claude-opus-4-6`). Lane workers run on your session model. If the grader would be the model you are running on now, warn the user once before the run: the grader is meant to be a different model from the one that wrote the code. Then carry on; the choice is theirs.
 > **State model**: git is the authority. A spec's `Spec: <item>/SPEC-NNN` commit trailer says its code landed. Frontmatter is a cache this skill reconciles forward, and **this skill is its only writer** (workers write code and commits only). You (the user) write `draft → approved` and unblock.
 
 ## Modes
@@ -71,7 +72,7 @@ if os.path.exists(cfg_path):
     except ValueError as e: out['errors'].append(f'.claude/speclane.json is not valid JSON: {e}')
 settings = dict(workDir=cfg.get('workDir', '.claude/work'), contractFile=os.path.join(skill_dir, 'SKILL.md') if skill_dir else '',
                 commands=cfg.get('commands', {}), derivedFiles=cfg.get('derivedFiles', []),
-                contextFiles=cfg.get('contextFiles', []), mcpTools=cfg.get('mcpTools', []))
+                contextFiles=cfg.get('contextFiles', []), mcpTools=cfg.get('mcpTools', []), graderModel=cfg.get('graderModel'))
 if not os.path.isdir(os.path.join(item, 'specs')):
     out['errors'].append(f'{item}: no specs/ folder (wrong item name, or workDir in .claude/speclane.json)'); print(json.dumps(out, indent=1)); sys.exit(1)
 # ---- §1 Pre-flight: parse specs + README, check v5 format and lane rules 1-5
@@ -401,7 +402,7 @@ try: cfg = json.load(open(cfg_path)) if os.path.exists(cfg_path) else {}
 except ValueError as e: print(json.dumps({'refused': f'.claude/speclane.json is not valid JSON: {e}'})); sys.exit(1)
 settings = dict(workDir=cfg.get('workDir', '.claude/work'), contractFile=os.path.join(skill_dir, 'SKILL.md') if skill_dir else '',
                 commands=cfg.get('commands', {}), derivedFiles=cfg.get('derivedFiles', []),
-                contextFiles=cfg.get('contextFiles', []), mcpTools=cfg.get('mcpTools', []))
+                contextFiles=cfg.get('contextFiles', []), mcpTools=cfg.get('mcpTools', []), graderModel=cfg.get('graderModel'))
 def fm(t, k):  # frontmatter value; a trailing '# comment' is dropped unless the value is quoted
     m = re.search(r'^' + k + r':[ \t]*(.*)$', t, re.M)
     if not m: return None

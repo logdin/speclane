@@ -12,6 +12,7 @@ Workflow scripts can't read files, so the skills read the config and pass what's
 |--------|------|-----|
 | `/speclane:execute` state script and single-spec script | `workDir`, `commands`, `derivedFiles`, `contextFiles`, `mcpTools` | Read from `<repo root>/.claude/speclane.json` and embedded in the workflow input as `settings`. The workflow puts them in worker, fix and converge prompts |
 | `/speclane:finalize` gate script | `reviewers.default`, `reviewers.aliases`, `highRisk` | Read by the script itself |
+| `/speclane:execute` workflow, `/speclane:init`, `/speclane:finalize` | `graderModel` | Passed as `model` to converge, the hand-off check and the verifier |
 | `/speclane:finalize` skill | `workDir`, `commands`, `contextFiles`, `mcpTools` | Read at the start (fix/format, gate, reviewer prompts, verifier brief) |
 | `/speclane:init` | `workDir`, `contextFiles`, `commands`, `reviewers.routes`, `derivedFiles` | Read at the start; routes each spec's `agents.review` |
 | `/speclane:plan`, `/speclane:review-plan` | `workDir`, `contextFiles`, `planReviewers`, `reviewers` | Read at the start |
@@ -88,7 +89,15 @@ When any file the item changed matches, `/speclane:finalize` adds a strict cross
 
 `/speclane:review-plan` includes entries with `always: true`, plus any whose `keywords` the plan actually discusses. If no entry matches, the first entry runs. Without the key, two generic `general-purpose` reviewers run (architecture, code quality).
 
+### `graderModel` (default: the agents' pinned `claude-opus-4-6`)
+
+The model for `speclane:converge` (per-spec grading), `speclane:handoff-check` (spec checks before approval) and the finalize verifier. Unset, speclane passes no `model` and the agents' frontmatter pin applies.
+
+The grader exists to be a **different model from the one that wrote the code**. Lane workers run on your session model (or Sonnet on a `sonnet` lane), so pick a grader that differs from it: one model grading its own output tends to share its blind spots. The skills warn once when the grader equals the session model, then carry on.
+
+Set it when `claude-opus-4-6` isn't available to you or has been retired, or when your sessions run on another model, e.g. `"graderModel": "claude-opus-5-5"` for a project whose sessions run on Fable.
+
 ## Not in the config
 
-- **Model pins.** `speclane:converge` and `speclane:handoff-check` pin `claude-opus-4-6` in their own frontmatter. That's the generator/verifier split: the grader must be a different model from the one that wrote the code. Lane workers use the session model, or Sonnet on a `sonnet` lane.
+- **Worker models.** Lane workers use the session model, or Sonnet on a `sonnet` lane (a lane property in the work-item README).
 - **Branch names.** Merge targets are your call; the runbook only requires `--no-ff`.

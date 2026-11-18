@@ -294,20 +294,21 @@ class StateScript(unittest.TestCase):
 
     def test_settings_embedded_from_config(self):
         cfg = {'workDir': 'docs/work', 'commands': {'test': 'pnpm test {files}', 'codegen': {'run': 'gen', 'when': 'schema'}},
-               'derivedFiles': ['src/gen/**'], 'contextFiles': ['AGENTS.md'], 'mcpTools': ['mcp__x__y'], 'highRisk': ['src/core/']}
+               'derivedFiles': ['src/gen/**'], 'contextFiles': ['AGENTS.md'], 'mcpTools': ['mcp__x__y'], 'highRisk': ['src/core/'],
+               'graderModel': 'claude-opus-5-5'}
         r = Repo(self, [S('SPEC-001', 'A')], [('A', ['SPEC-001'], 'default', [])], work_dir='docs/work', cfg=cfg)
         code, out = r.run(STATE, r.item, '/plug/skills/execute')
         self.assertEqual(code, 0)
         st = out['input']['settings']
         self.assertEqual(st, {'workDir': 'docs/work', 'contractFile': '/plug/skills/execute/SKILL.md', 'commands': cfg['commands'],
-                              'derivedFiles': ['src/gen/**'], 'contextFiles': ['AGENTS.md'], 'mcpTools': ['mcp__x__y']})
+                              'derivedFiles': ['src/gen/**'], 'contextFiles': ['AGENTS.md'], 'mcpTools': ['mcp__x__y'], 'graderModel': 'claude-opus-5-5'})
         self.assertEqual(out['input']['lanes'][0]['specs'][0]['specPath'], 'docs/work/items/fx/specs/SPEC-001-x.md')
 
     def test_settings_defaults_without_config(self):
         r = Repo(self, [S('SPEC-001', 'A')], [('A', ['SPEC-001'], 'default', [])])
         _, out = r.run(STATE, r.item, '/s', '--write')
         self.assertEqual(out['input']['settings'], {'workDir': '.claude/work', 'contractFile': '/s/SKILL.md', 'commands': {},
-                                                    'derivedFiles': [], 'contextFiles': [], 'mcpTools': []})
+                                                    'derivedFiles': [], 'contextFiles': [], 'mcpTools': [], 'graderModel': None})
 
     def test_invalid_config_is_a_preflight_error(self):
         r = Repo(self, [S('SPEC-001', 'A')], [('A', ['SPEC-001'], 'default', [])], cfg='{ nope')

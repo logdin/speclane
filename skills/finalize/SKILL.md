@@ -20,7 +20,7 @@ allowed-tools:
 
 Finalize: **$ARGUMENTS**
 
-> **Project config**: first `Read` `${CLAUDE_PROJECT_DIR}/.claude/speclane.json` (docs: `${CLAUDE_PLUGIN_ROOT}/docs/config.md`). Take `workDir` (default `.claude/work`; below, `{workDir}`), `commands`, `mcpTools` and `contextFiles` from it. The finalize script reads `reviewers` and `highRisk` from the same file itself. If the file is missing, every default applies: say so once.
+> **Project config**: first `Read` `${CLAUDE_PROJECT_DIR}/.claude/speclane.json` (docs: `${CLAUDE_PLUGIN_ROOT}/docs/config.md`). Take `workDir` (default `.claude/work`; below, `{workDir}`), `commands`, `mcpTools`, `contextFiles` and `graderModel` from it. The finalize script reads `reviewers` and `highRisk` from the same file itself. If the file is missing, every default applies: say so once.
 > **State model**: git is the authority. A spec's code landed when a commit carries its `Spec: <item>/SPEC-NNN` trailer. Spec frontmatter is a cache that only `/speclane:execute` writes. This skill reads it, reconciles it forward **in memory**, and never edits spec files or the README.
 
 Three checks, three jobs: per-lane converge already graded each spec against its acceptance (`/speclane:execute`). Here, the reviewers judge each `agents.review` group as a whole. The serial gate proves the merged tree analyzes and tests clean. A strict cross-model verifier (pinned `claude-opus-4-6`) adds a completeness pass for items that touch a `highRisk` path.
@@ -142,15 +142,15 @@ Build one agent entry per `groups` entry. `type` is already resolved through `re
 | `{acceptance}` | the group's `acceptance` (each spec's `## Acceptance`, under an `=== SPEC-NNN ===` line) |
 | `{files}` | the group's `files`: the union of its specs' changed files, one per line |
 
-When `highRisk` is non-empty, also pass `verify.brief`. It names the item, its spec IDs, the commit list from `specs[].commits`, the `highRisk` files, the spec folder to check against (`{workDir}/items/{item}/specs/`) and the `contextFiles`. Pass no `model`: the workflow pins its verifier to `claude-opus-4-6`. When `highRisk` is empty, omit `verify`.
+When `highRisk` is non-empty, also pass `verify.brief`. It names the item, its spec IDs, the commit list from `specs[].commits`, the `highRisk` files, the spec folder to check against (`{workDir}/items/{item}/specs/`) and the `contextFiles`. Pass `verify.model` only when the config sets `graderModel`; otherwise pass none and the workflow pins its verifier to `claude-opus-4-6`. When `highRisk` is empty, omit `verify`.
 
 ```
-Workflow({ name: 'speclane:finalize-agents', args: { workItem: '{item}', agents: [{ type, scope, prompt }, ...], verify: { brief } } })
+Workflow({ name: 'speclane:finalize-agents', args: { workItem: '{item}', agents: [{ type, scope, prompt }, ...], verify: { brief, model? } } })
 ```
 
 Source: `${CLAUDE_PLUGIN_ROOT}/workflows/finalize.js`. Returns `{ reviews: Array<{ agent, scope, summary, score?, findings[], filesChanged[] }>, verify: { verdict, findings[] } | null }`.
 
-**Fallback** (no `Workflow`): dispatch each entry with `Agent({ subagent_type: type, run_in_background: false, prompt })`, and the verifier with `Agent({ subagent_type: "general-purpose", model: "claude-opus-4-6", run_in_background: false, prompt: brief })`.
+**Fallback** (no `Workflow`): dispatch each entry with `Agent({ subagent_type: type, run_in_background: false, prompt })`, and the verifier with `Agent({ subagent_type: "general-purpose", model: "{graderModel, default claude-opus-4-6}", run_in_background: false, prompt: brief })`.
 
 A reviewer that returned nothing is listed in the report as "no result". It isn't retried.
 

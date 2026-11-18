@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- `graderModel` config: overrides the `claude-opus-4-6` pin for converge, the hand-off check and the finalize verifier (default unchanged). The skills warn when it equals the session model.
+
 ## 0.1.2 (2026-11-17)
 
 Fixes from an independent review:

@@ -65,9 +65,9 @@ Each agent's frontmatter owns its model. Dispatch without a `model` argument.
 
 | Agent | Model | Why |
 |-------|-------|-----|
-| `speclane:handoff-check` | `claude-opus-4-6` (pinned) | Cross-model check of the planner's specs before approval (generator/verifier split) |
-| `speclane:converge` | `claude-opus-4-6` (pinned), effort `high` | Grades each spec independently of the model that wrote it |
-| finalize verifier (`highRisk` only) | `claude-opus-4-6`, set by the workflow | Strict completeness pass |
+| `speclane:handoff-check` | `claude-opus-4-6` (pinned; `graderModel` overrides) | Cross-model check of the planner's specs before approval (generator/verifier split) |
+| `speclane:converge` | `claude-opus-4-6` (pinned; `graderModel` overrides), effort `high` | Grades each spec independently of the model that wrote it |
+| finalize verifier (`highRisk` only) | `claude-opus-4-6`, set by the workflow (`graderModel` overrides) | Strict completeness pass |
 | lane worker / fix worker | session model; `sonnet` on a sonnet lane | — |
 | `/speclane:plan` skill | `opus`, effort `xhigh`, forked context (skill frontmatter) | Planning is the most consequential step; needs Opus access |
 | `/speclane:finalize` skill | `sonnet` (skill frontmatter) | It orchestrates and writes reports; the reviewers and verifier do the judging |

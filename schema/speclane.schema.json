@@ -9,17 +9,30 @@
     "command": {
       "description": "A shell command (zsh), or { run, when }. {files} is replaced with the changed paths (workers) or with nothing (whole-project gate).",
       "oneOf": [
-        { "type": "string", "minLength": 1 },
+        {
+          "type": "string",
+          "minLength": 1
+        },
         {
           "type": "object",
-          "required": ["run"],
+          "required": [
+            "run"
+          ],
           "additionalProperties": false,
           "properties": {
-            "run": { "type": "string", "minLength": 1 },
-            "when": { "type": "string", "description": "Plain-language condition shown to workers, e.g. 'a spec touches @freezed models'." }
+            "run": {
+              "type": "string",
+              "minLength": 1
+            },
+            "when": {
+              "type": "string",
+              "description": "Plain-language condition shown to workers, e.g. 'a spec touches @freezed models'."
+            }
           }
         },
-        { "type": "null" }
+        {
+          "type": "null"
+        }
       ]
     },
     "pathPattern": {
@@ -29,7 +42,9 @@
     }
   },
   "properties": {
-    "$schema": { "type": "string" },
+    "$schema": {
+      "type": "string"
+    },
     "workDir": {
       "type": "string",
       "default": ".claude/work",
@@ -37,7 +52,9 @@
     },
     "contextFiles": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "default": [],
       "description": "Files every skill and agent reads first (conventions, rules, platform notes)."
     },
@@ -46,27 +63,45 @@
       "additionalProperties": false,
       "default": {},
       "properties": {
-        "test": { "$ref": "#/$defs/command" },
-        "analyze": { "$ref": "#/$defs/command" },
-        "fix": { "$ref": "#/$defs/command" },
-        "format": { "$ref": "#/$defs/command" },
-        "codegen": { "$ref": "#/$defs/command" },
+        "test": {
+          "$ref": "#/$defs/command"
+        },
+        "analyze": {
+          "$ref": "#/$defs/command"
+        },
+        "fix": {
+          "$ref": "#/$defs/command"
+        },
+        "format": {
+          "$ref": "#/$defs/command"
+        },
+        "codegen": {
+          "$ref": "#/$defs/command"
+        },
         "gate": {
           "type": "array",
-          "items": { "type": "string", "minLength": 1 },
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
           "description": "Finalize serial gate, run in order. Default: analyze then test, with {files} removed."
         }
       }
     },
     "mcpTools": {
       "type": "array",
-      "items": { "type": "string", "pattern": "^mcp__" },
+      "items": {
+        "type": "string",
+        "pattern": "^mcp__"
+      },
       "default": [],
       "description": "MCP tools workers should prefer for fix/format/analyze/test when available."
     },
     "derivedFiles": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "default": [],
       "description": "Generated files a spec commit may include without listing them in ## Files (globs or short descriptions). Test files for the changed code are always derived."
     },
@@ -75,30 +110,48 @@
       "additionalProperties": false,
       "default": {},
       "properties": {
-        "default": { "type": "string", "default": "general-purpose" },
+        "default": {
+          "type": "string",
+          "default": "general-purpose"
+        },
         "routes": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["paths", "agent"],
+            "required": [
+              "paths",
+              "agent"
+            ],
             "additionalProperties": false,
             "properties": {
-              "paths": { "type": "array", "items": { "$ref": "#/$defs/pathPattern" }, "minItems": 1 },
-              "agent": { "type": "string" }
+              "paths": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/pathPattern"
+                },
+                "minItems": 1
+              },
+              "agent": {
+                "type": "string"
+              }
             }
           },
           "description": "First route whose pattern matches one of a spec's ## Files paths sets its agents.review."
         },
         "aliases": {
           "type": "object",
-          "additionalProperties": { "type": "string" },
+          "additionalProperties": {
+            "type": "string"
+          },
           "description": "Alternative names that resolve to an agent, e.g. { \"ux-specialist\": \"ux-reviewer\" }."
         }
       }
     },
     "highRisk": {
       "type": "array",
-      "items": { "$ref": "#/$defs/pathPattern" },
+      "items": {
+        "$ref": "#/$defs/pathPattern"
+      },
       "default": [],
       "description": "Changed paths matching these trigger the cross-model verify pass in /speclane:finalize."
     },
@@ -106,16 +159,37 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["agent", "brief"],
+        "required": [
+          "agent",
+          "brief"
+        ],
         "additionalProperties": false,
         "properties": {
-          "agent": { "type": "string" },
-          "brief": { "type": "string" },
-          "always": { "type": "boolean", "default": false },
-          "keywords": { "type": "array", "items": { "type": "string" } }
+          "agent": {
+            "type": "string"
+          },
+          "brief": {
+            "type": "string"
+          },
+          "always": {
+            "type": "boolean",
+            "default": false
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       },
       "description": "Reviewers /speclane:review-plan selects from. Without it, two generic general-purpose reviewers run."
+    },
+    "graderModel": {
+      "type": "string",
+      "minLength": 1,
+      "default": "claude-opus-4-6",
+      "description": "Model for speclane:converge, speclane:handoff-check and the finalize verifier. Default: their pinned claude-opus-4-6. Pick a model different from your session (worker) model."
     }
   }
 }

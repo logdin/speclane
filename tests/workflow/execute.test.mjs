@@ -245,6 +245,15 @@ await scenario('settings: worker prompt carries commands, codegen condition, der
     assert(c.includes(s), 'converge prompt missing: ' + s)
 })
 
+await scenario('graderModel: converge gets model when set, none when unset (frontmatter pin)', async () => {
+  const replies = { 'lane:A': worker('A', ['S1']), ...all(['S1']) }
+  const set = await run(body, { workItem: 'it', settings: { graderModel: 'claude-opus-5-5' }, lanes: [lane('A', [spec('S1')])] }, replies)
+  assert(set.calls.find((c) => c.label === 'converge:S1').opts.model === 'claude-opus-5-5', 'model not passed')
+  assert(!('model' in set.calls.find((c) => c.label === 'lane:A').opts), 'worker got grader model')
+  const unset = await run(body, { workItem: 'it', settings: { graderModel: null }, lanes: [lane('A', [spec('S1')])] }, replies)
+  assert(!('model' in unset.calls.find((c) => c.label === 'converge:S1').opts), 'model passed when unset')
+})
+
 await scenario('settings absent: no project-specific text, neutral fallbacks', async () => {
   const { calls } = await run(body, { workItem: 'it', lanes: [lane('A', [spec('S1')])] }, { 'lane:A': worker('A', ['S1']), ...all(['S1']) })
   const w = calls.find((c) => c.label === 'lane:A').prompt + calls.find((c) => c.label === 'converge:S1').prompt

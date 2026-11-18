@@ -28,6 +28,11 @@ await scenario('finalize: verify runs pinned claude-opus-4-6 on general-purpose 
   assert(out.verify.verdict === 'APPROVE' && out.reviews.length === 1, JSON.stringify(out))
 })
 
+await scenario('finalize: verify.model overrides the pinned verifier model', async () => {
+  const { calls } = await run(fin.body, { workItem: 'w', agents: [], verify: { brief: 'b', model: 'claude-opus-5-5' } }, {})
+  assert(calls[0].opts.model === 'claude-opus-5-5' && calls[0].label === 'verify:claude-opus-5-5', JSON.stringify(calls[0].opts))
+})
+
 await scenario('finalize: verify only (no reviewers) still runs; verifier with no result -> null', async () => {
   const { out, calls } = await run(fin.body, { workItem: 'w', agents: [], verify: { brief: 'b' } }, {})
   assert(calls.length === 1 && out.verify === null && out.reviews.length === 0, JSON.stringify(out))
