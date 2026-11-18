@@ -1,13 +1,15 @@
 {
   "name": "speclane",
-  "owner": { "name": "speclane maintainers" },
+  "owner": {
+    "name": "speclane maintainers"
+  },
   "description": "The speclane plugin, served from its own repository.",
   "plugins": [
     {
       "name": "speclane",
       "source": "./",
       "description": "Planner/worker spec workflow with serial lanes and an independent converge grader.",
-      "version": "0.1.0"
+      "version": "0.1.1"
     }
   ]
 }
