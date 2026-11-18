@@ -1,5 +1,7 @@
 # speclane
 
+[![test](https://github.com/logdin/speclane/actions/workflows/test.yml/badge.svg)](https://github.com/logdin/speclane/actions/workflows/test.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A Claude Code plugin for plan-driven work, split between a planner and workers. A strong planner in your main session writes thin, reviewable specs, one per commit. A pinned cross-model agent checks that each spec stands on its own, and you approve. Workers then implement the specs in **lanes**, one lane at a time, each commit carrying a `Spec: <item>/SPEC-NNN` trailer. Finally, an independent grader on a different model (`claude-opus-4-6`) checks every spec against its acceptance criteria. Failed specs get fix rounds, with a 3-round cap.
 
 Git is the record: the `Spec:` trailers say what landed, and spec frontmatter is a cache that only the execute skill writes. Re-running is always the resume path.
@@ -21,6 +23,8 @@ Agents: `speclane:converge` (grader) and `speclane:handoff-check` (spec checker)
 The full flow, state machine and rules are in [`docs/runbook.md`](docs/runbook.md).
 
 ## Install
+
+**Requirements**: Claude Code with the Workflow tool, `git`, `python3` (3.9+) and macOS or Linux. Commands in specs run in zsh (or bash); Windows is untested. `/speclane:finalize` and `/speclane:review-plan` fall back to plain `Agent` calls without `Workflow`; `/speclane:execute` needs it.
 
 The repository is its own marketplace. From the project you want to use it in:
 
@@ -97,6 +101,7 @@ Live runs have found bugs the stubs missed, so also smoke-test a change in a scr
 
 ## Known limits
 
+- **Pinned grader model.** `agents/converge.md` and `agents/handoff-check.md` pin `claude-opus-4-6`, and the finalize verifier uses it too (`workflows/finalize.js`, `VERIFY_MODEL`). The pin is deliberate: the grader must be a different model from the one that wrote the code. If that model is retired, those agents fail to start. Change the `model:` line in both agents and `VERIFY_MODEL` to another model that differs from your session and worker models, then bump the plugin version. `tests/static_test.py` checks the pin, so update it there too.
 - **Workflow names must differ from skill names.** A plugin workflow is also a `/speclane:<meta.name>` slash command and shadows a skill of the same name. That's why the workflows are `execute-lanes`, `finalize-agents` and `review-plan-agents`. A static test guards it.
 - **`.claude/` is a sensitive path.** `Write`/`Edit` calls under it ask for approval (headless runs refuse them). `init`, `plan` and `review-plan` write that way; set `workDir` outside `.claude/` to avoid the prompts. `execute` and `finalize` write through their scripts and aren't affected.
 - **Project MCP tools aren't pre-approved.** A plugin skill can't list them in `allowed-tools`; allow them in your project's `.claude/settings.json` if you configure `mcpTools`.

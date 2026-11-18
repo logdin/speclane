@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://speclane.local/schema/speclane.schema.json",
+  "$id": "https://raw.githubusercontent.com/logdin/speclane/main/schema/speclane.schema.json",
   "title": "speclane project config (.claude/speclane.json)",
   "description": "Per-project settings for the speclane plugin. Every key is optional; see docs/config.md.",
   "type": "object",

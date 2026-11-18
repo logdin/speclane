@@ -404,7 +404,7 @@ lanes = {m.group(1): dict(specs=re.findall(r'SPEC-\d+', m.group(2)), worker=m.gr
          for m in re.finditer(r'^\|\s*([A-Z])\s*\|\s*(SPEC[^|]*)\|\s*(\w+)\s*\|', open(os.path.join(item, 'README.md')).read(), re.M)}
 if target not in specs: print(json.dumps({'refused': f'{target} not found'})); sys.exit(1)
 s = specs[target]; mates = lanes[s['lane']]['specs']
-blocking = [d for d in s['deps'] + mates[:mates.index(target)] if specs[d]['status'] != 'done']
+blocking = [d for d in dict.fromkeys(s['deps'] + mates[:mates.index(target)]) if specs[d]['status'] != 'done']
 if blocking: print(json.dumps({'refused': f'{target} needs these done first: ' + ', '.join(f'{d} ({specs[d]["status"]})' for d in blocking)})); sys.exit(1)
 if s['status'] not in ('approved', 'committed'): print(json.dumps({'refused': f'{target} is {s["status"]}; only approved or committed specs run'})); sys.exit(1)
 print(json.dumps({'workItem': os.path.basename(item), 'settings': settings, 'lanes': [dict(lane=s['lane'], worker=lanes[s['lane']]['worker'], dependsOn=[],

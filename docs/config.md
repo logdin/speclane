@@ -2,7 +2,7 @@
 
 speclane keeps everything project-specific in one file at the repo root: `.claude/speclane.json`. Every key is optional. With no file at all, the defaults below apply and the skills say so once.
 
-Schema: [`schema/speclane.schema.json`](../schema/speclane.schema.json). Add `"$schema"` to get editor completion (point it at the plugin's copy, or copy the schema into your repo). Examples: [`examples/`](../examples/).
+Schema: [`schema/speclane.schema.json`](../schema/speclane.schema.json). For editor completion, add `"$schema": "https://raw.githubusercontent.com/logdin/speclane/main/schema/speclane.schema.json"` (or a path to a local copy). Use a tagged URL (`…/speclane/v0.1.0/schema/…`) to stay on one version. Examples: [`examples/`](../examples/).
 
 ## Who reads it
 

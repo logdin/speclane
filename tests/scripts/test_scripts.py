@@ -413,6 +413,7 @@ class SingleSpec(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertTrue(out['refused'].startswith('SPEC-003 needs these done first: SPEC-002 (committed)'), out)
         self.assertIn('SPEC-001 (committed)', out['refused'])
+        self.assertEqual(out['refused'].count('SPEC-002'), 1, 'a dependency that is also an earlier lane-mate is listed once')
 
     def test_refuses_draft(self):
         r = self.r
