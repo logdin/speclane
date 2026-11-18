@@ -36,7 +36,7 @@ For plan-driven, multi-spec work. The main session plans; workers implement one 
 
 ## Lanes
 
-A lane is the specs one worker implements in sequence, keeping its context. Lanes run **one at a time**: every worker edits the session's working tree, so parallel lanes would see each other's half-written files. `/speclane:init` derives lanes from `depends_on`; pre-flight re-checks the rules:
+A lane is the specs one worker implements in sequence, keeping its context. Lanes are named with single capital letters (`A`–`Z`). Lanes run **one at a time**: every worker edits the session's working tree, so parallel lanes would see each other's half-written files. `/speclane:init` derives lanes from `depends_on`; pre-flight re-checks the rules:
 
 1. Within a lane, specs are ordered so each `depends_on` comes first.
 2. A lane depends on every lane holding a dependency of one of its specs.
@@ -69,6 +69,9 @@ Each agent's frontmatter owns its model. Dispatch without a `model` argument.
 | `speclane:converge` | `claude-opus-4-6` (pinned), effort `high` | Grades each spec independently of the model that wrote it |
 | finalize verifier (`highRisk` only) | `claude-opus-4-6`, set by the workflow | Strict completeness pass |
 | lane worker / fix worker | session model; `sonnet` on a sonnet lane | — |
+| `/speclane:plan` skill | `opus`, effort `xhigh`, forked context (skill frontmatter) | Planning is the most consequential step; needs Opus access |
+| `/speclane:finalize` skill | `sonnet` (skill frontmatter) | It orchestrates and writes reports; the reviewers and verifier do the judging |
+| `/speclane:init`, `:execute`, `:review-plan` | session model | init plans in your main session on purpose |
 | project reviewers | their own frontmatter | — |
 
 The pin is deliberate and does not track "latest opus". If a run's journal ever shows converge on another model, pass `model: 'claude-opus-4-6'` in that `agent()` call in `workflows/execute.js` and record why in its header.
@@ -77,7 +80,7 @@ Plugin agents ignore `permissionMode`, `hooks` and `mcpServers` in their frontma
 
 ## Acceptance criteria that work
 
-- Commands run in zsh. On macOS that means BSD tools: `sed -i ''`, no GNU-only flags.
+- Commands run in the session's shell: zsh on macOS, usually bash on Linux. Write POSIX-compatible commands, and on macOS remember BSD tools (`sed -i ''`, no GNU-only flags).
 - **Greps**: `.claude/worktrees/` holds other sessions' untracked checkouts. Every recursive grep over `.` or `.claude` needs `--exclude-dir=worktrees`, or use `git grep` (tracked files only). `converge` marks a grep whose only extra hits are under worktrees `untestable`, not `fail`.
 - Criteria must still hold after later lane-mates land: converge grades at the lane's final HEAD.
 

@@ -190,7 +190,7 @@ class StateScript(unittest.TestCase):
         h = r.head()
         code, out = r.run(STATE, r.item, '/skill')
         self.assertEqual(code, 1)
-        self.assertIn('SPEC-001: not a v5 spec (no status:/lane:). Upgrade it first: speclane docs/upgrading-v4.md', out['errors'])
+        self.assertIn('SPEC-001: no status:/lane: in frontmatter. Start from skills/init/spec-template.md, or see speclane docs/upgrading-v4.md for specs in an older format', out['errors'])
         self.assertEqual(r.head(), h)
 
     def test_preflight_cycle_and_rule3(self):
@@ -504,6 +504,70 @@ class ConvergeScript(unittest.TestCase):
         self.assertEqual(self.r.digest(), d)
 
 
+# ======================================================================= review findings (2026-11-17)
+TEMPLATE_FM = open(os.path.join(ROOT, 'skills', 'init', 'spec-template.md')).read().split('---\n')[1]
+
+
+def templated(r, sid, lane, deps='', status='approved', review='general-purpose'):
+    """Rewrite a spec's frontmatter the way a planner filling spec-template.md verbatim would: values swapped, comments kept."""
+    fmv = (TEMPLATE_FM.replace('SPEC-{NNN}', sid).replace('{Component Name}', sid).replace('lane: {A}', f'lane: {lane}')
+           .replace('depends_on: []', f'depends_on: [{deps}]').replace('status: draft  ', f'status: {status}  ')
+           .replace('review: general-purpose', f'review: {review}'))
+    p = r.p(r.item, 'specs', f'{sid}-x.md')
+    body = open(p).read().split('---\n', 2)[2]
+    open(p, 'w').write('---\n' + fmv + '---\n' + body)
+
+
+class ReviewFindings(unittest.TestCase):
+    def test_template_comments_do_not_break_state_script(self):
+        r = Repo(self, [S('SPEC-001', 'A'), S('SPEC-002', 'A', deps=['SPEC-001'])], [('A', ['SPEC-001', 'SPEC-002'], 'default', [])])
+        templated(r, 'SPEC-001', 'A'); templated(r, 'SPEC-002', 'A', deps='SPEC-001'); r.commit_all()
+        self.assertIn('#', r.spec_text('SPEC-001').split('---')[1])
+        r.commit_spec('SPEC-001')
+        code, out = r.run(STATE, r.item, '/s', '--write')
+        self.assertEqual((code, out['errors']), (0, []))
+        self.assertEqual(out['order'], ['A: SPEC-001 -> SPEC-002'])
+        self.assertIn('SPEC-001: commits +1, approved -> committed', out['changes'])
+        self.assertTrue(r.fm('SPEC-001', 'status').startswith('committed'))
+
+    def test_template_comment_does_not_become_reviewers(self):
+        r = Repo(self, [S('SPEC-001', 'A', status='done', converge='pass')], [('A', ['SPEC-001'], 'default', [])])
+        templated(r, 'SPEC-001', 'A', status='done', review='ux-reviewer'); r.set_fm('SPEC-001', 'converge', 'pass'); r.commit_all()
+        r.commit_spec('SPEC-001')
+        code, out = r.run(GATE, r.item)
+        self.assertEqual(code, 0, out)
+        self.assertEqual([g['type'] for g in out['groups']], ['ux-reviewer'])
+
+    def test_quoted_value_keeps_hash(self):
+        r = Repo(self, [S('SPEC-001', 'A', status='blocked', reason='"tests failed #3"'), S('SPEC-002', 'A', status='skipped')],
+                 [('A', ['SPEC-001', 'SPEC-002'], 'default', [])])
+        r.commit_spec('SPEC-001'); r.commit_spec('SPEC-002')
+        r.set_fm('SPEC-002', 'status', 'done'); r.set_fm('SPEC-002', 'converge', 'pass'); r.commit_all()
+        code, out = r.run(GATE, r.item)
+        self.assertEqual({n['spec']: n['reason'] for n in out['notDone']}, {'SPEC-001': 'tests failed #3'})
+
+    def test_draft_holds_dependents_and_later_lane_mates(self):
+        # lane A ends in a draft that lane B depends on; lane C has a draft in the middle
+        specs = [S('SPEC-001', 'A'), S('SPEC-002', 'A', status='draft'), S('SPEC-003', 'B', deps=['SPEC-002']),
+                 S('SPEC-004', 'C'), S('SPEC-005', 'C', status='draft'), S('SPEC-006', 'C')]
+        r = Repo(self, specs, [('A', ['SPEC-001', 'SPEC-002'], 'default', []), ('B', ['SPEC-003'], 'default', ['A']),
+                               ('C', ['SPEC-004', 'SPEC-005', 'SPEC-006'], 'default', [])])
+        code, out = r.run(STATE, r.item, '/s')
+        self.assertEqual(code, 0, out['errors'])
+        self.assertEqual(sorted(out['held']), ['SPEC-003', 'SPEC-006'])
+        self.assertEqual(out['order'], ['A: SPEC-001', 'C: SPEC-004'])
+        self.assertEqual(out['awaiting'], ['SPEC-002', 'SPEC-005'])
+
+    def test_missing_id_is_a_preflight_error(self):
+        r = Repo(self, [S('SPEC-001', 'A')], [('A', ['SPEC-001'], 'default', [])])
+        p = r.p(r.item, 'specs', 'SPEC-001-x.md')
+        text = open(p).read()
+        open(p, 'w').write(re.sub(r'^id: .*\n', '', text, flags=re.M)); r.commit_all()
+        code, out = r.run(STATE, r.item, '/s')
+        self.assertEqual(code, 1)
+        self.assertIn('SPEC-001-x.md: no id: in frontmatter', out['errors'])
+
+
 # ======================================================================= SPEC-007: finalize gate
 CFG = {'reviewers': {'default': 'code-quality', 'aliases': {'ux-specialist': 'ux-reviewer'}},
        'highRisk': ['src/core/', 'lib/features/*/domain/**', 'CLAUDE.md']}
@@ -521,7 +585,7 @@ class FinalizeGate(unittest.TestCase):
         why = {n['spec']: n['reason'] for n in out['notDone']}
         self.assertEqual(why['SPEC-002'], 'committed, but converge is untestable (1/2) (needs pass or manual)')
         self.assertEqual(why['SPEC-003'], 'why')
-        self.assertEqual(why['SPEC-004'], 'held behind a blocked dependency or lane-mate')
+        self.assertTrue(why['SPEC-004'].startswith('not run: a dependency or earlier lane-mate is blocked or still draft'))
         self.assertEqual(why['SPEC-005'], 'awaiting approval')
         self.assertEqual(why['SPEC-006'], 'no `Spec: fx/SPEC-006` trailer commit')
         self.assertNotIn('SPEC-001', why)

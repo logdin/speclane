@@ -101,7 +101,7 @@ One spec = one commit, so a spec should be something you'd want as a single comm
 
 ## 4. Form Lanes
 
-A lane is the specs **one worker implements in sequence**, keeping its context. Lanes run one at a time, in dependency order. Assign every spec a `lane:` and write the README lanes table.
+A lane is the specs **one worker implements in sequence**, keeping its context. Lanes run one at a time, in dependency order. Assign every spec a `lane:` and write the README lanes table. **Lane names are single capital letters** (`A`–`Z`): the scripts parse the lanes table by that pattern, so `api` or `L1` would make pre-flight fail.
 
 **Rules** (all must hold; `/speclane:execute` pre-flight re-checks them):
 1. Within a lane, specs are ordered so each spec's `depends_on` comes earlier in the lane or in another lane.
@@ -115,7 +115,7 @@ Prefer fewer, longer lanes for chains that touch the same area. Use separate lan
 **Check before writing the README**. Run this, or an equivalent, and fix any output except the final `acyclic OK` line:
 
 ```bash
-python3 -I - "$ITEM_DIR" <<'EOF'
+python3 -I - "{workDir}/items/{slug}" <<'EOF'
 import re,glob,sys,os
 d=sys.argv[1]; specs={}
 for f in glob.glob(os.path.join(d,'specs','*.md')):

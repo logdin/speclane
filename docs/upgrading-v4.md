@@ -1,5 +1,7 @@
 # Upgrading a v4 work item (or an in-repo v5 copy)
 
+v4 and v5 are the two formats of the spec workflow speclane was built from (see README → Upgrading). New users can skip this page.
+
 ## From v4
 
 `/speclane:execute` pre-flight fails on any spec without v5 frontmatter (no `status:`/`lane:`) and points here. To upgrade an item in place:

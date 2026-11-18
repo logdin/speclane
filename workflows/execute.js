@@ -33,7 +33,7 @@
 // rewrite the criterion). Any `fail` or out-of-scope path still means a fix round.
 //
 // args: {
-//   workItem: string,                          // e.g. 'spec-system-v5'
+//   workItem: string,                          // e.g. 'search-filters' (the work-item folder name)
 //   settings?: {                               // from .claude/speclane.json, embedded by the skill's state script
 //     workDir: string,                         // default '.claude/work'
 //     contractFile: string,                    // absolute path of the execute SKILL.md (its "Worker contract" section)

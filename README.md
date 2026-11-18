@@ -12,11 +12,11 @@ Everything project-specific lives in one config file, `.claude/speclane.json`.
 
 | Command | What it does |
 |---------|--------------|
-| `/speclane:plan <feature \| --from doc.md>` | Write a structured plan to `{workDir}/plans/` (forked, high effort). User-invoked only |
+| `/speclane:plan <feature \| --from doc.md>` | Write a structured plan to `{workDir}/plans/` (forked, Opus at `xhigh` effort). User-invoked only |
 | `/speclane:review-plan <plan.md>` | Fan reviewers out over a plan; consolidated report in `{workDir}/reviews/` |
 | `/speclane:init <plan.md \| feature>` | Draft specs + lanes in `{workDir}/items/<slug>/`, then the `speclane:handoff-check` agent. User-invoked only |
 | `/speclane:execute <slug> [SPEC-NNN] [--dry-run]` | Pre-flight, reconcile from git, run lanes serially, converge, record state, bookkeeping commit |
-| `/speclane:finalize <slug>` | Gate on `done`, reviewers per group, cross-model verify for high-risk paths, one serial analyze/test pass, validation report |
+| `/speclane:finalize <slug>` | (Runs on Sonnet.) Gate on `done`, reviewers per group, cross-model verify for high-risk paths, one serial analyze/test pass, validation report |
 
 Agents: `speclane:converge` (grader) and `speclane:handoff-check` (spec checker), both pinned to `claude-opus-4-6`. Workflows (called by the skills, not meant to be run by hand): `speclane:execute-lanes`, `speclane:finalize-agents`, `speclane:review-plan-agents`. Their names differ from the skills' on purpose: a plugin workflow is also a slash command, and one named like a skill shadows it.
 
@@ -24,7 +24,7 @@ The full flow, state machine and rules are in [`docs/runbook.md`](docs/runbook.m
 
 ## Install
 
-**Requirements**: Claude Code with the Workflow tool, `git`, `python3` (3.9+) and macOS or Linux. Commands in specs run in zsh (or bash); Windows is untested. `/speclane:finalize` and `/speclane:review-plan` fall back to plain `Agent` calls without `Workflow`; `/speclane:execute` needs it.
+**Requirements**: Claude Code with the Workflow tool (saved workflows), `git` 2.22+ (for `%(trailers:key=…,valueonly)`), `python3` 3.9+, and macOS or Linux. Commands in specs run in the session's shell (zsh on macOS, usually bash on Linux); Windows is untested. `/speclane:plan` needs Opus access. `/speclane:finalize` and `/speclane:review-plan` fall back to plain `Agent` calls without `Workflow`; `/speclane:execute` needs it.
 
 The repository is its own marketplace. From the project you want to use it in:
 
@@ -43,8 +43,11 @@ claude plugin install speclane@speclane --scope project
 Then add a project config (optional, but without one there are no test/analyze commands and every reviewer is `general-purpose`):
 
 ```bash
+mkdir -p .claude
 curl -fsSL https://raw.githubusercontent.com/logdin/speclane/main/examples/web-monorepo.speclane.json -o .claude/speclane.json   # pick the closest example, then edit
 ```
+
+In the copied file, change `"$schema"` to `"https://raw.githubusercontent.com/logdin/speclane/main/schema/speclane.schema.json"` (the example's relative path only works inside this repo).
 
 Open a **new** session after installing: skills, agents and workflows load when a session starts. `/speclane:init` also offers to draft a config from your build files if none exists.
 
@@ -75,11 +78,11 @@ Open a **new** session after installing: skills, agents and workflows load when 
 
 Domain reviewer agents stay in your project's `.claude/agents/`. speclane routes to them by name.
 
-Examples (fictional projects): [Flutter app](examples/mobile-app.speclane.json), [pnpm/TypeScript monorepo](examples/web-monorepo.speclane.json), [docs-only repo](examples/docs-only.speclane.json).
+Examples (fictional projects): [Flutter app](examples/mobile-app.speclane.json), [pnpm/TypeScript monorepo](examples/web-monorepo.speclane.json), [Python service](examples/python-service.speclane.json), [docs-only repo](examples/docs-only.speclane.json).
 
 ## Upgrading
 
-From a v4 work item or an in-repo copy of the v5 skills: [`docs/upgrading-v4.md`](docs/upgrading-v4.md). Work items are format-compatible.
+speclane grew out of an in-house spec workflow. Its last version, **v5**, is the format speclane uses: spec frontmatter with `status:`/`lane:`, a lanes table in the work-item README, and `Spec:` trailers. **v4** was the earlier format without lanes. If you're new, you have neither: start with `/speclane:init`. If you have specs from either, see [`docs/upgrading-v4.md`](docs/upgrading-v4.md); v5 work items need no changes.
 
 ## Develop
 

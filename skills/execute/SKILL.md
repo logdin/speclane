@@ -43,7 +43,7 @@ Every run resumes: there is no separate resume flag. Re-running after a crash, a
 | `blocked` | 3 failed converge rounds, or the worker failed before committing | This skill |
 | `skipped` | Didn't run because a dependency or earlier lane-mate is blocked | This skill |
 
-A spec is **held** while any spec in its `depends_on`, or any earlier spec in its lane, is `blocked` or itself held (so holding passes down a chain of dependencies). Held specs are never sent to the workflow, not even `committed` ones, so nothing builds past a blocked spec.
+A spec is **held** while any spec in its `depends_on`, or any earlier spec in its lane, is `blocked`, is still `draft`, or is itself held (so holding passes down a chain of dependencies). Held specs are never sent to the workflow, not even `committed` ones, so nothing builds past a blocked spec.
 
 ## §1 Pre-flight, §2 Reconcile, §3 Guard, §4 Build Input: the state script
 
@@ -57,9 +57,12 @@ skill_dir = next((a for a in sys.argv[2:] if a != '--write'), '')
 slug = os.path.basename(item)
 root = subprocess.run(['git', 'rev-parse', '--show-toplevel'], capture_output=True, text=True).stdout.strip()
 STATUSES = {'draft', 'approved', 'committed', 'done', 'blocked', 'skipped'}
-def fm(t, k):
+def fm(t, k):  # frontmatter value; a trailing '# comment' is dropped unless the value is quoted
     m = re.search(r'^' + k + r':[ \t]*(.*)$', t, re.M)
-    return m.group(1).strip().strip('"\'') if m else None
+    if not m: return None
+    v = m.group(1).strip()
+    q = re.match(r'(["\'])((?:\\.|(?!\1).)*)\1', v)
+    return q.group(2) if q else re.sub(r'\s+#.*$', '', v).strip('"\'')
 out = {'item': slug, 'errors': [], 'changes': [], 'held': [], 'awaiting': [], 'dirty': [], 'input': None, 'order': [], 'wouldSkip': []}
 # ---- speclane config (.claude/speclane.json at the repo root; every key optional)
 cfg_path = os.path.join(root, '.claude', 'speclane.json'); cfg = {}
@@ -77,9 +80,10 @@ for f in sorted(os.listdir(os.path.join(item, 'specs'))):
     if not f.endswith('.md'): continue
     p = os.path.join(item, 'specs', f); t = open(p).read()
     sid = fm(t, 'id') or f.split('-', 2)[0] + '-' + f.split('-', 2)[1]
+    if not fm(t, 'id'): out['errors'].append(f'{f}: no id: in frontmatter'); continue
     st, ln = fm(t, 'status'), fm(t, 'lane')
     if st is None or ln is None:
-        out['errors'].append(f'{sid}: not a v5 spec (no status:/lane:). Upgrade it first: speclane docs/upgrading-v4.md'); continue
+        out['errors'].append(f'{sid}: no status:/lane: in frontmatter. Start from skills/init/spec-template.md, or see speclane docs/upgrading-v4.md for specs in an older format'); continue
     if st not in STATUSES: out['errors'].append(f'{sid}: unknown status {st!r}')
     files = []
     sec = re.search(r'^## Files[ \t]*\n(.*?)(?=^## |\Z)', t, re.M | re.S)
@@ -142,12 +146,13 @@ for sid, s in specs.items():
         out['changes'].append(f'{sid}: ' + (f'commits +{len(add)}' if add else 'has commits') + (f', {st} -> {nst}' if nst != st else ''))
     if sid in new: s['status'], s['commits'] = new[sid]['status'], new[sid]['commits']
 blocked = {sid for sid, s in specs.items() if s['status'] == 'blocked'}
+holding = blocked | {sid for sid, s in specs.items() if s['status'] == 'draft'}  # a draft hasn't been approved: nothing builds on it
 _held = {}
-def held(sid, seen=()):  # transitive: behind a blocked spec, or behind a spec that is itself held
+def held(sid, seen=()):  # transitive: behind a blocked or draft spec, or behind a spec that is itself held
     if sid not in _held:
         s = specs[sid]; mates = lanes[s['lane']]['specs']
         before = [d for d in s['deps'] + mates[:mates.index(sid)] if d not in seen]
-        _held[sid] = any(d in blocked or held(d, seen + (sid,)) for d in before)
+        _held[sid] = any(d in holding or held(d, seen + (sid,)) for d in before)
     return _held[sid]
 for sid, s in specs.items():
     if s['status'] == 'skipped' and not held(sid):
@@ -161,7 +166,7 @@ for sid, s in specs.items():
     st = subprocess.run(['git', 'status', '--porcelain', '--'] + s['files'], capture_output=True, text=True, cwd=root).stdout
     paths = [l[3:] for l in st.splitlines() if l.strip()]
     if paths: out['dirty'].append({'spec': sid, 'paths': paths})
-# ---- §4 Build workflow input (SPEC-004 args) + the serial order it would run
+# ---- §4 Build the workflow input (workflows/execute.js args) + the serial order it would run
 done_lane = lambda n: all(specs[x]['status'] == 'done' for x in lanes[n]['specs'])
 inp = []
 for n in order_in:
@@ -197,7 +202,7 @@ PYEOF
 Exit code: `0` ready, `1` pre-flight errors, `2` dirty tree.
 
 ### §1 Pre-flight
-Always run the script **without** `--write` first. On exit `1`, stop before anything else: print each entry of `errors` and change nothing. A spec without `status:`/`lane:` is a v4 spec. Point the user to `${CLAUDE_PLUGIN_ROOT}/docs/upgrading-v4.md`.
+Always run the script **without** `--write` first. On exit `1`, stop before anything else: print each entry of `errors` and change nothing. A spec without `status:`/`lane:` is in an older format, or was written by hand without the template. Point the user to `${CLAUDE_PLUGIN_ROOT}/docs/upgrading-v4.md`.
 
 ### §2 Reconcile
 Report `changes` to the user. Reconcile only moves forward:
@@ -214,7 +219,7 @@ On exit `2`, stop. For each `dirty` entry, print the spec and its paths, then of
 Never set work aside with the stash stack: it's shared with other sessions and worktrees. The dirty spec is usually the one a killed run or a failed worker was in the middle of.
 
 ### §4 Build input and run
-Print `order` (lanes in run order, specs in each), `wouldSkip`, `held` ("held behind a blocked spec") and `awaiting` ("awaiting approval: set `status: approved` to include").
+Print `order` (lanes in run order, specs in each), `wouldSkip`, `held` ("held behind a blocked or draft spec") and `awaiting` ("awaiting approval: set `status: approved` to include").
 
 - **`--dry-run`**: stop here. You've written nothing and committed nothing, so `git log -1` is unchanged.
 - If `input.lanes` is empty: say there's nothing to run, and stop.
@@ -241,7 +246,7 @@ git commit --only -F <msgfile> -- <every new, modified, deleted, old and new pat
 ```
 
    - `--only` commits exactly those paths and leaves anything else in the tree or index alone.
-   - `<msgfile>` is written **outside the repo** (the session scratchpad, or `$TMPDIR`). Its last paragraph is the trailer block:
+   - `<msgfile>` is written **outside the repo** (the session scratchpad, or `${TMPDIR:-/tmp}`). Its last paragraph is the trailer block:
 
 ```
 <type>(<scope>): <summary>
@@ -258,16 +263,19 @@ Refs: #N
 
 ## §6 Write results
 
-After the workflow returns, save its return to a file outside the repo (e.g. `$TMPDIR/speclane-execute-return.json`). Then run the results script. It's the only thing that writes spec state from a run:
+After the workflow returns, save its return to `{returnFile}`: run `printf '%s\n' "${TMPDIR:-/tmp}"` once and use `<that folder>/speclane-{item}-return.json` (an absolute path, outside the repo; the `Write` tool doesn't expand variables). Then run the results script. It's the only thing that writes spec state from a run:
 
 ```bash
-python3 -I - "{workDir}/items/{item}" "$TMPDIR/speclane-execute-return.json" <<'PYEOF'
+python3 -I - "{workDir}/items/{item}" "{returnFile}" <<'PYEOF'
 import json, os, re, subprocess, sys, datetime
 item, ret = sys.argv[1].rstrip('/'), json.load(open(sys.argv[2]))
 slug = os.path.basename(item)
-def fm(t, k):
+def fm(t, k):  # frontmatter value; a trailing '# comment' is dropped unless the value is quoted
     m = re.search(r'^' + k + r':[ \t]*(.*)$', t, re.M)
-    return m.group(1).strip().strip('"\'') if m else None
+    if not m: return None
+    v = m.group(1).strip()
+    q = re.match(r'(["\'])((?:\\.|(?!\1).)*)\1', v)
+    return q.group(2) if q else re.sub(r'\s+#.*$', '', v).strip('"\'')
 specs = {}
 for f in sorted(os.listdir(os.path.join(item, 'specs'))):
     if not f.endswith('.md'): continue
@@ -394,9 +402,12 @@ except ValueError as e: print(json.dumps({'refused': f'.claude/speclane.json is 
 settings = dict(workDir=cfg.get('workDir', '.claude/work'), contractFile=os.path.join(skill_dir, 'SKILL.md') if skill_dir else '',
                 commands=cfg.get('commands', {}), derivedFiles=cfg.get('derivedFiles', []),
                 contextFiles=cfg.get('contextFiles', []), mcpTools=cfg.get('mcpTools', []))
-def fm(t, k):
+def fm(t, k):  # frontmatter value; a trailing '# comment' is dropped unless the value is quoted
     m = re.search(r'^' + k + r':[ \t]*(.*)$', t, re.M)
-    return m.group(1).strip().strip('"\'') if m else None
+    if not m: return None
+    v = m.group(1).strip()
+    q = re.match(r'(["\'])((?:\\.|(?!\1).)*)\1', v)
+    return q.group(2) if q else re.sub(r'\s+#.*$', '', v).strip('"\'')
 specs = {}
 for f in sorted(os.listdir(os.path.join(item, 'specs'))):
     if f.endswith('.md'):
@@ -416,7 +427,7 @@ print(json.dumps({'workItem': os.path.basename(item), 'settings': settings, 'lan
 PYEOF
 ```
 
-On exit `1`, print `refused` and stop. Otherwise pass the printed JSON to `Workflow({ name: 'speclane:execute-lanes', args: … })`, then run §6, §8 and §7 as usual. Single-spec mode never runs `/speclane:finalize`.
+On exit `1`, print `refused`. If the state script's output listed `written` specs, make the §7 bookkeeping commit (reconcile only moves state forward, so it's safe to keep); then stop. Otherwise pass the printed JSON to `Workflow({ name: 'speclane:execute-lanes', args: … })`, then run §6, §8 and §7 as usual. Single-spec mode never runs `/speclane:finalize`.
 
 ## §8 Write converge results
 
@@ -428,12 +439,15 @@ The workflow converges each lane with the independent `speclane:converge` agent 
 Run this **after §6**, on the same saved return, and **before** the §7 bookkeeping commit:
 
 ```bash
-python3 -I - "{workDir}/items/{item}" "$TMPDIR/speclane-execute-return.json" <<'PYEOF'
+python3 -I - "{workDir}/items/{item}" "{returnFile}" <<'PYEOF'
 import json, os, re, sys, datetime
 item, ret = sys.argv[1].rstrip('/'), json.load(open(sys.argv[2]))
-def fm(t, k):
+def fm(t, k):  # frontmatter value; a trailing '# comment' is dropped unless the value is quoted
     m = re.search(r'^' + k + r':[ \t]*(.*)$', t, re.M)
-    return m.group(1).strip().strip('"\'') if m else None
+    if not m: return None
+    v = m.group(1).strip()
+    q = re.match(r'(["\'])((?:\\.|(?!\1).)*)\1', v)
+    return q.group(2) if q else re.sub(r'\s+#.*$', '', v).strip('"\'')
 specs = {}
 for f in sorted(os.listdir(os.path.join(item, 'specs'))):
     if f.endswith('.md'):

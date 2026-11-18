@@ -8,9 +8,9 @@
 // holds the context: changed files, spec contents, report expectations) and
 // consumes the returns for report writing; this script owns HOW they run.
 //
-// Replaces the old Agent(run_in_background: true) + TaskOutput-polling dispatch,
-// which breaks under agent teams (teammate sessions keep findings in their own
-// transcripts) and needed a hand-run 5-minute-timeout wait loop.
+// Why a workflow: background Agent dispatch with polling breaks under agent
+// teams (teammate sessions keep findings in their own transcripts); parallel()
+// here is the barrier and every return is schema-validated.
 //
 // Agents run in the session's working tree. A test-writing agent may WRITE test
 // files there deliberately (no worktree isolation; reviewers only read, so the
@@ -22,7 +22,7 @@
 // script reads the item's spec frontmatter and its `Spec: <item>/SPEC-NNN`
 // trailer commits. Specs are grouped by their frontmatter `agents.review`
 // reviewer; each group becomes ONE entry whose `scope` is its spec IDs and
-// whose prompt is the skill's `per-spec-agent` template, filled with those
+// whose prompt is skills/finalize/reviewer-prompt.md, filled with those
 // specs' IDs, their `## Acceptance` sections, and the union of the files
 // their trailer commits changed (deleted paths dropped). This script never
 // reads spec files or git itself.

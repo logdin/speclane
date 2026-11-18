@@ -20,7 +20,7 @@ allowed-tools:
 
 Finalize: **$ARGUMENTS**
 
-> **Project config**: first `Read` `${CLAUDE_PROJECT_DIR}/.claude/speclane.json` (docs: `${CLAUDE_PLUGIN_ROOT}/docs/config.md`). Take `workDir` (default `.claude/work`; below, `{workDir}`), `commands` and `contextFiles` from it. The finalize script reads `reviewers` and `highRisk` from the same file itself. If the file is missing, every default applies: say so once.
+> **Project config**: first `Read` `${CLAUDE_PROJECT_DIR}/.claude/speclane.json` (docs: `${CLAUDE_PLUGIN_ROOT}/docs/config.md`). Take `workDir` (default `.claude/work`; below, `{workDir}`), `commands`, `mcpTools` and `contextFiles` from it. The finalize script reads `reviewers` and `highRisk` from the same file itself. If the file is missing, every default applies: say so once.
 > **State model**: git is the authority. A spec's code landed when a commit carries its `Spec: <item>/SPEC-NNN` trailer. Spec frontmatter is a cache that only `/speclane:execute` writes. This skill reads it, reconciles it forward **in memory**, and never edits spec files or the README.
 
 Three checks, three jobs: per-lane converge already graded each spec against its acceptance (`/speclane:execute`). Here, the reviewers judge each `agents.review` group as a whole. The serial gate proves the merged tree analyzes and tests clean. A strict cross-model verifier (pinned `claude-opus-4-6`) adds a completeness pass for items that touch a `highRisk` path.
@@ -51,9 +51,12 @@ def glob_re(p):  # path prefix ('src/core/'), exact path, or glob ('*' within a 
 HIGH_RISK = [glob_re(p) for p in cfg.get('highRisk', [])]
 RV = cfg.get('reviewers', {}); ALIASES = RV.get('aliases', {})
 DEFAULT_REVIEW = RV.get('default', 'general-purpose')
-def fm(t, k):
+def fm(t, k):  # frontmatter value; a trailing '# comment' is dropped unless the value is quoted
     m = re.search(r'^' + k + r':[ \t]*(.*)$', t, re.M)
-    return m.group(1).strip().strip('"\'') if m else None
+    if not m: return None
+    v = m.group(1).strip()
+    q = re.match(r'(["\'])((?:\\.|(?!\1).)*)\1', v)
+    return q.group(2) if q else re.sub(r'\s+#.*$', '', v).strip('"\'')
 def git(*a): return subprocess.run(['git', *a], capture_output=True, text=True).stdout
 # Trailer commits for this item, oldest first: exact `<item>/SPEC-NNN` values only
 found = {}
@@ -69,10 +72,10 @@ for f in sorted(os.listdir(os.path.join(item, 'specs'))):
     sid = fm(t, 'id') or '-'.join(f.split('-', 2)[:2])
     st = fm(t, 'status')
     if st is None or fm(t, 'lane') is None:
-        out['errors'].append(f'{sid}: not a v5 spec (no status:/lane:)'); continue
+        out['errors'].append(f'{sid}: no status:/lane: in frontmatter (see docs/upgrading-v4.md)'); continue
     m = re.search(r'^agents:[ \t]*\n((?:[ \t]+.*\n?)*)', t, re.M)
     rv = re.search(r'^[ \t]+review:[ \t]*(.*)$', m.group(1), re.M) if m else None
-    reviewers = [ALIASES.get(x, x) for x in re.findall(r'[A-Za-z0-9_:-]+', rv.group(1))] if rv else []
+    reviewers = [ALIASES.get(x, x) for x in re.findall(r'[A-Za-z0-9_:-]+', re.sub(r'\s+#.*$', '', rv.group(1)))] if rv else []
     acc = re.search(r'^## Acceptance[ \t]*\n(.*?)(?=^## |\Z)', t, re.M | re.S)
     commits = found.get(sid, [])
     conv = fm(t, 'converge'); conv = None if conv in (None, '', 'null', '~') else conv
@@ -81,7 +84,7 @@ for f in sorted(os.listdir(os.path.join(item, 'specs'))):
     done = bool(commits) and conv in ('pass', 'manual')
     if not done:
         if eff == 'blocked': why = fm(t, 'blocked_reason') or 'blocked (no reason recorded)'
-        elif eff == 'skipped': why = 'held behind a blocked dependency or lane-mate'
+        elif eff == 'skipped': why = 'not run: a dependency or earlier lane-mate is blocked or still draft, or a dependency lane did not finish'
         elif eff == 'draft': why = 'awaiting approval'
         elif not commits: why = f'no `Spec: {slug}/{sid}` trailer commit'
         else: why = f'committed, but converge is {conv or "null"} (needs pass or manual)'

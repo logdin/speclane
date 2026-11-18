@@ -1,0 +1,36 @@
+{
+  "$schema": "../schema/speclane.schema.json",
+  "workDir": "docs/work",
+  "contextFiles": [
+    "CONTRIBUTING.md"
+  ],
+  "commands": {
+    "test": "uv run pytest -q {files}",
+    "analyze": "uv run ruff check {files} && uv run mypy {files}",
+    "fix": "uv run ruff check --fix {files}",
+    "format": "uv run ruff format {files}",
+    "codegen": null,
+    "gate": [
+      "uv run ruff check .",
+      "uv run mypy .",
+      "uv run pytest -q"
+    ]
+  },
+  "derivedFiles": [],
+  "reviewers": {
+    "default": "general-purpose",
+    "routes": [
+      {
+        "paths": [
+          "src/app/db/",
+          "migrations/"
+        ],
+        "agent": "data-reviewer"
+      }
+    ]
+  },
+  "highRisk": [
+    "migrations/",
+    "src/app/auth/"
+  ]
+}

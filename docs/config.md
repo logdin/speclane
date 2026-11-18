@@ -43,7 +43,7 @@ Files read before anything else: by the planner (`init`, `plan`), by every worke
 
 A command is a string, `null`, or `{ "run": "...", "when": "..." }`. `when` is shown to workers as a condition ("only when a spec touches @freezed models"). With no gate commands, finalize records the gate as **not run**, never as a pass.
 
-Commands run in zsh. Write them for macOS (BSD) tools if anyone runs speclane on a Mac.
+Commands run in the session's shell (zsh on macOS, usually bash on Linux). Keep them POSIX-compatible, and avoid GNU-only flags if anyone runs speclane on a Mac.
 
 ### `mcpTools` (default `[]`)
 
@@ -86,7 +86,7 @@ When any file the item changed matches, `/speclane:finalize` adds a strict cross
 ]
 ```
 
-`/speclane:review-plan` includes entries with `always: true`, plus any whose `keywords` the plan actually discusses. Without the key, two generic `general-purpose` reviewers run (architecture, code quality).
+`/speclane:review-plan` includes entries with `always: true`, plus any whose `keywords` the plan actually discusses. If no entry matches, the first entry runs. Without the key, two generic `general-purpose` reviewers run (architecture, code quality).
 
 ## Not in the config
 

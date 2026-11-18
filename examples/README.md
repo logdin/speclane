@@ -6,6 +6,7 @@ Fictional projects showing how `.claude/speclane.json` fits different stacks. Co
 |------|---------------|-------|
 | `mobile-app.speclane.json` | Flutter app (fvm, Dart MCP server, freezed codegen) | `codegen` with a `when` condition, `mcpTools`, generated `derivedFiles`, path-routed reviewers with aliases, `highRisk` globs, keyword-selected plan reviewers |
 | `web-monorepo.speclane.json` | pnpm/TypeScript monorepo (vitest, eslint, prettier, GraphQL codegen) | a `workDir` outside `.claude/` (no write prompts), a single `gate` command, per-app reviewers |
+| `python-service.speclane.json` | Python service (uv, pytest, ruff, mypy) | `{files}` in test/analyze/fix/format, a three-command `gate`, one routed reviewer |
 | `docs-only.speclane.json` | Markdown-only repo | no test command; `analyze` as a lint; the finalize gate records "not run" when nothing is configured |
 
 Notes:
