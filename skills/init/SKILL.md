@@ -146,12 +146,12 @@ EOF
 
 ## 5. Hand-off Check
 
-Dispatch the read-only `speclane:handoff-check` agent **once**, synchronously. It checks, on a model different from yours (its pin `claude-opus-4-6`, or `graderModel` from the config), whether each draft stands on its own. If that model is the one you are running on, warn the user once: the check is meant to come from a different model than the planner's.
+Dispatch the read-only `speclane:handoff-check` agent **once**, synchronously. It checks, on a model different from yours, whether each draft stands on its own. **When the config sets `graderModel`, always pass it as `model`**, even if it's the model you are running on: the config is the user's choice, so never swap it for the pin yourself. In that case add one line to the step 6 summary: "Warning: graderModel equals the planner's model, so the hand-off check isn't cross-model." When `graderModel` is unset, pass no `model` (the agent's pin `claude-opus-4-6` applies).
 
 ```
 Agent({
   subagent_type: "speclane:handoff-check",       // no model arg: its frontmatter pin (claude-opus-4-6) applies
-  // model: "{graderModel}",                     // only when .claude/speclane.json sets graderModel
+  model: "{graderModel}",                       // ONLY when .claude/speclane.json sets graderModel; otherwise omit this line
   description: "Hand-off check {slug}",
   prompt: "Work item: {workDir}/items/{slug}/. Spec template: ${CLAUDE_SKILL_DIR}/spec-template.md. Project context files: {contextFiles, comma-separated, or none}. Project commands: {commands from .claude/speclane.json, or none}. Run the five checks on every spec with status: draft and return your JSON block."
 })

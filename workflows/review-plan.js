@@ -13,13 +13,14 @@
 //   plan:     string,                       // full plan content
 //   reviewers: Array<{                      // selected by the skill
 //     type:  string,                        // subagent_type (project agent name, or general-purpose)
+//     name?: string,                        // display name (e.g. 'architecture'); defaults to type
 //     brief: string,                        // that reviewer's checklist
 //     model?: string,                       // OPTIONAL override; omit to use the agent's own frontmatter
 //     effort?: string,
 //   }>,
 // }
 //
-// returns: Array<{ agent, verdict, findings[], questions[] }> — one per
+// returns: Array<{ agent, name, verdict, findings[], questions[] }> — one per
 // surviving reviewer, `agent` set deterministically by this script.
 
 export const meta = {
@@ -68,7 +69,7 @@ const reviews = await parallel(
     agent(
       `${r.brief}\n\n## Under Review\nFile: ${args.planFile}\n\n${args.plan}`,
       {
-        label: `review:${r.type}`,
+        label: `review:${r.name ?? r.type}`,
         phase: 'Review',
         agentType: r.type,
         // Omit model/effort to inherit the agent's frontmatter — pass them
@@ -84,10 +85,10 @@ const reviews = await parallel(
 // Attribute results by position rather than trusting a model-reported field:
 // parallel() preserves input order, so index i is reviewers[i].
 const attributed = reviews
-  .map((review, i) => (review ? { agent: reviewers[i].type, ...review } : null))
+  .map((review, i) => (review ? { agent: reviewers[i].type, name: reviewers[i].name ?? reviewers[i].type, ...review } : null))
   .filter(Boolean)
 
-const died = reviewers.filter((r, i) => !reviews[i]).map((r) => r.type)
+const died = reviewers.filter((r, i) => !reviews[i]).map((r) => r.name ?? r.type)
 if (died.length > 0) {
   log(`No result from: ${died.join(', ')} — consolidating the rest.`)
 }

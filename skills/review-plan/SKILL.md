@@ -28,12 +28,13 @@ Read the plan file named in `$ARGUMENTS`.
 
 ### 2. Select Reviewers by Content
 
-**With `planReviewers` in the config**: each entry is `{ agent, brief, always?, keywords? }`. Include an entry when `always` is true, or when the plan discusses one of its `keywords` (match on intent, not incidental mentions: a filename that contains a keyword doesn't make the plan about it). If nothing matched, include the first entry.
+**With `planReviewers` in the config**: each entry is `{ agent, brief, name?, always?, keywords? }`. Include an entry when `always` is true, or when the plan discusses one of its `keywords` (match on intent, not incidental mentions: a filename that contains a keyword doesn't make the plan about it). If nothing matched, include the first entry.
 
 **Without `planReviewers`**: use the two built-in reviewers below, both on `general-purpose`. Architecture is always included; code quality joins when the plan names types, functions, modules or error handling.
 
-Build a `reviewers` list. Each entry is `{ type, brief }`:
+Build a `reviewers` list. Each entry is `{ type, name, brief }`:
 - `type`: the entry's `agent`. It must exist in the project's `.claude/agents/` or be built in (`general-purpose`). If it isn't available in this session, warn and use `general-purpose` with the same brief.
+- `name`: the entry's `name` if set, else its `agent`. The built-ins are `architecture` and `code-quality`. Names keep two reviewers on the same agent type apart in labels and the report.
 - `brief`: the entry's checklist, followed by: "Read these project files first: {contextFiles}" when the config lists any.
 - `model` / `effort`: **omit both.** Each agent's own frontmatter owns its model. Pass an override only for a stated reason, and say why in the report.
 
@@ -69,7 +70,7 @@ Workflow({ name: 'speclane:review-plan-agents', args: { planFile: PLAN_FILE, pla
 
 Source: `${CLAUDE_PLUGIN_ROOT}/workflows/review-plan.js`. It runs every reviewer in `parallel()`, which is the barrier: the Workflow returns only once all have landed, each result validated against the `FINDINGS` schema and attributed to its reviewer by position. The reviewers' verbose analysis never enters this session's context — only the compact findings return.
 
-Returns `Array<{ agent, verdict, findings[], questions[] }>`, one per surviving reviewer.
+Returns `Array<{ agent, name, verdict, findings[], questions[] }>`, one per surviving reviewer.
 
 **Fallback** (no `Workflow`): in a **single message**, dispatch every selected reviewer with `Agent({ subagent_type: r.type, run_in_background: false, prompt: <brief + plan> })`. `run_in_background: false` makes each call synchronous, so the barrier is the message itself. Never use `run_in_background: true` here (see the note at the top).
 
@@ -88,12 +89,12 @@ Write the consolidated report to `{workDir}/reviews/{plan-filename}-review.md`:
 
 ## Summary
 
-| Agent | Verdict | Critical | Warnings |
+| Reviewer (name / agent) | Verdict | Critical | Warnings |
 |-------|---------|----------|----------|
 
 **Overall Verdict**: {worst verdict from any agent}
 
-## {Agent} Review
+## {name} review ({agent})
 {results}
 
 ## Consolidated Action Items

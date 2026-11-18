@@ -180,6 +180,10 @@
             "items": {
               "type": "string"
             }
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name in labels and the report; defaults to agent."
           }
         }
       },

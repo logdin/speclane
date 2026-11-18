@@ -55,6 +55,14 @@ await scenario('review-plan: meta name, parallel, model only when passed, attrib
   assert(out.map((r) => r.agent + ':' + r.verdict).join() === 'x:APPROVE,y:REQUEST_CHANGES', JSON.stringify(out))
 })
 
+await scenario('review-plan: name keeps two reviewers on one agent type apart', async () => {
+  const args = { planFile: 'p', plan: 'P', reviewers: [{ type: 'general-purpose', name: 'architecture', brief: 'A' }, { type: 'general-purpose', name: 'code-quality', brief: 'C' }] }
+  const F = { verdict: 'APPROVE', findings: [], questions: [] }
+  const { out, labels } = await run(rp.body, args, { 'review:architecture': F, 'review:code-quality': F })
+  assert(labels.sort().join() === 'review:architecture,review:code-quality', labels.join())
+  assert(out.map((r) => `${r.name}/${r.agent}`).join() === 'architecture/general-purpose,code-quality/general-purpose', JSON.stringify(out))
+})
+
 await scenario('review-plan: no reviewers -> []', async () => {
   const { out, calls } = await run(rp.body, { planFile: 'p', plan: '' }, {})
   assert(calls.length === 0 && Array.isArray(out) && out.length === 0, 'out')

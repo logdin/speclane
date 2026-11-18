@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- `graderModel` config: overrides the `claude-opus-4-6` pin for converge, the hand-off check and the finalize verifier (default unchanged). The skills warn when it equals the session model.
+- review-plan: reviewers take an optional `name`, so two reviewers on the same agent type (like the two built-ins) are told apart in labels and the report. Found in the first live run of `/speclane:plan` and `/speclane:review-plan`.
+- `graderModel` config: overrides the `claude-opus-4-6` pin for converge, the hand-off check and the finalize verifier (default unchanged). The skills always pass it when set and print a one-line warning when it equals the session model (a live run first showed a session silently swapping it back to the pin).
 
 ## 0.1.2 (2026-11-17)
 

@@ -142,7 +142,7 @@ Build one agent entry per `groups` entry. `type` is already resolved through `re
 | `{acceptance}` | the group's `acceptance` (each spec's `## Acceptance`, under an `=== SPEC-NNN ===` line) |
 | `{files}` | the group's `files`: the union of its specs' changed files, one per line |
 
-When `highRisk` is non-empty, also pass `verify.brief`. It names the item, its spec IDs, the commit list from `specs[].commits`, the `highRisk` files, the spec folder to check against (`{workDir}/items/{item}/specs/`) and the `contextFiles`. Pass `verify.model` only when the config sets `graderModel`; otherwise pass none and the workflow pins its verifier to `claude-opus-4-6`. When `highRisk` is empty, omit `verify`.
+When `highRisk` is non-empty, also pass `verify.brief`. It names the item, its spec IDs, the commit list from `specs[].commits`, the `highRisk` files, the spec folder to check against (`{workDir}/items/{item}/specs/`) and the `contextFiles`. When the config sets `graderModel`, always pass it as `verify.model` (never swap it for the pin yourself); otherwise pass none and the workflow pins its verifier to `claude-opus-4-6`. When `highRisk` is empty, omit `verify`.
 
 ```
 Workflow({ name: 'speclane:finalize-agents', args: { workItem: '{item}', agents: [{ type, scope, prompt }, ...], verify: { brief, model? } } })

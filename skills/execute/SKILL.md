@@ -20,7 +20,7 @@ allowed-tools:
 Execute: **$ARGUMENTS**
 
 > **Project config**: first `Read` `${CLAUDE_PROJECT_DIR}/.claude/speclane.json` (schema: `${CLAUDE_PLUGIN_ROOT}/schema/speclane.schema.json`, docs: `${CLAUDE_PLUGIN_ROOT}/docs/config.md`). Take `workDir` from it (default `.claude/work`); below, `{workDir}` means that value. If the file is missing, every default applies: say so once and continue. The state script reads the same file itself and passes `commands`, `derivedFiles`, `contextFiles`, `mcpTools` and `graderModel` to the workflow, so never copy them by hand.
-> **Grader model**: converge runs on `graderModel` (default: the agent's pinned `claude-opus-4-6`). Lane workers run on your session model. If the grader would be the model you are running on now, warn the user once before the run: the grader is meant to be a different model from the one that wrote the code. Then carry on; the choice is theirs.
+> **Grader model**: converge runs on `graderModel` (default: the agent's pinned `claude-opus-4-6`). Lane workers run on your session model. The state script passes it to the workflow as is; never change it. If it names the model you are running on (the default-lane workers' model), print one line before the run: "Warning: graderModel equals the session model, so converge isn't cross-model for default lanes." Then carry on.
 > **State model**: git is the authority. A spec's `Spec: <item>/SPEC-NNN` commit trailer says its code landed. Frontmatter is a cache this skill reconciles forward, and **this skill is its only writer** (workers write code and commits only). You (the user) write `draft → approved` and unblock.
 
 ## Modes
